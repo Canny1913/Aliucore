@@ -8,6 +8,8 @@ package com.aliucord;
 
 import android.os.Environment;
 
+import kotlin.Unit;
+
 @SuppressWarnings("unused")
 public final class Constants {
     public static final class Icons {
@@ -57,6 +59,7 @@ public final class Constants {
     public static final String NAMESPACE_ANDROID = "http://schemas.android.com/apk/res/android";
     public static final String NAMESPACE_APP = "http://schemas.android.com/apk/res-auto";
 
+    public static final kotlin.Unit UNIT = Unit.a;
     /**
      * The release suffix of the currently running Discord. Some methods have this as their suffix and it changes with release, so in those
      * cases use {@code "someMethod$" + Constants.RELEASE_SUFFIX} with reflection so that it works on all releases.
