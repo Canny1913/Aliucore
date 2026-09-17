@@ -13,7 +13,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import com.aliucord.*
-import com.aliucord.PluginManager.isSafeModeEnabled
 import com.aliucord.entities.CorePlugin
 import com.aliucord.fragments.ConfirmDialog
 import com.aliucord.patcher.*
@@ -121,7 +120,7 @@ internal class CoreFeatures : CorePlugin(Manifest("CoreFeatures")) {
             "configureUI",
             WidgetGlobalStatusIndicatorViewModel.ViewState::class.java,
         ) { param ->
-            if (!isSafeModeEnabled()) return@before
+            if (!Main.safeMode) return@before
 
             val context = requireContext()
 

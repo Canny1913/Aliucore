@@ -17,6 +17,7 @@ import com.aliucord.entities.NotificationData
 import com.aliucord.patcher.Hook
 import com.aliucord.patcher.Patcher
 import com.aliucord.screens.UpdaterScreen
+import com.aliucord.settings.ALIUCORD_SAFE_MODE_KEY
 import com.aliucord.settings.AUTO_DISABLE_ON_CRASH_KEY
 import com.aliucord.updater.*
 import com.aliucord.updater.ManagerBuild.hasPatches
@@ -39,6 +40,10 @@ object Main {
 
     private var loadedPlugins = false
 
+    /** Disables external plugins and non-essential core plugins. */
+    @JvmField
+    var safeMode = false
+
     lateinit var settings: SettingsUtilsJSON
 
     /**
@@ -51,6 +56,7 @@ object Main {
 
         createDirectories() // injector ensures we have perms
         settings = SettingsUtilsJSON("Aliucord")
+        safeMode = settings.getBool(ALIUCORD_SAFE_MODE_KEY, false)
 
         Patcher.addPatch(AppActivity::class.java, "onCreate", arrayOf(Bundle::class.java), Hook { param ->
             val activity = param.thisObject as AppActivity
@@ -173,7 +179,7 @@ object Main {
     }
 
     private fun loadAllPlugins(context: Context) {
-        if (PluginManager.isSafeModeEnabled()) {
+        if (safeMode) {
             logger.warn("Safe mode is enabled. skipping loading external plugins")
             loadedPlugins = true
             return

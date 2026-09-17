@@ -324,7 +324,7 @@ public class Plugins extends SettingsPage {
         setActionBarTitle("Plugins");
         removeScrollView();
 
-        if (!PluginManager.isSafeModeEnabled()) {
+        if (!Main.safeMode) {
             setActionBarSubtitle(PluginManager.getPluginsInfo());
         }
 
@@ -341,7 +341,7 @@ public class Plugins extends SettingsPage {
             return true;
         });
 
-        if (PluginManager.isSafeModeEnabled()) {
+        if (Main.safeMode) {
             TextView safeModeNotice = new TextView(context, null, 0, R.i.UiKit_Settings_Item_Header);
             safeModeNotice.setAllCaps(false);
             safeModeNotice.setText("This page won't work while safe mode is on.\n Use Aliucord Manager to change plugin settings.");

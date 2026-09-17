@@ -279,9 +279,6 @@ object PluginManager {
     @JvmStatic
     fun getVisiblePlugins() = plugins.filter { (_, p) -> p !is CorePlugin || !p.isHidden }
 
-    /** Checks whether safe mode is enabled. */
-    @JvmStatic
-    fun isSafeModeEnabled() = Main.settings.getBool(ALIUCORD_SAFE_MODE_KEY, false)
 
     /** Gets a formatted string with info about installed and enabled plugins */
     @JvmStatic
@@ -324,10 +321,9 @@ object PluginManager {
             TokenLogin(),
             UploadSize(),
         )
-
-        val safeMode = isSafeModeEnabled();
+        
         corePlugins.filter { p ->
-            !safeMode || p.isRequired
+            !Main.safeMode || p.isRequired
         }.forEach { p ->
             logger.info("Loading coreplugin: ${p.name}")
             try {
