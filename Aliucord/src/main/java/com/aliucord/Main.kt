@@ -5,29 +5,12 @@
  */
 package com.aliucord
 
-import android.Manifest
+import android.app.Application
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.*
-import android.provider.Settings
+import android.os.Bundle
+import android.os.Looper
 import android.view.View
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import com.aliucord.PluginManager.getPluginPrefKey
-import com.aliucord.PluginManager.isPluginEnabled
-import com.aliucord.PluginManager.isSafeModeEnabled
-import com.aliucord.PluginManager.loadCorePlugins
-import com.aliucord.PluginManager.loadPlugin
-import com.aliucord.PluginManager.startCorePlugins
-import com.aliucord.PluginManager.startPlugin
-import com.aliucord.PluginManager.stopPlugin
-import com.aliucord.Utils.appContext
-import com.aliucord.Utils.openPage
-import com.aliucord.Utils.showToast
 import com.aliucord.api.NotificationsAPI
 import com.aliucord.entities.CorePlugin
 import com.aliucord.entities.NotificationData
@@ -44,15 +27,14 @@ import com.discord.models.domain.ModelUserSettings
 import com.discord.widgets.chat.list.WidgetChatList
 import java.io.*
 import java.sql.Timestamp
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 object Main {
-    /** Whether Aliucord has been preInitialized  */
-    var preInitialized: Boolean = false
-
-    /** Whether Aliucord has been initialized  */
-    var initialized: Boolean = false
+    /** Whether Aliucord Activity entrypoint has run at least once */
+    var activityInitialized: AtomicBoolean = AtomicBoolean(false)
+    @JvmField
     val logger: Logger = Logger()
 
     private var loadedPlugins = false
@@ -60,17 +42,28 @@ object Main {
     lateinit var settings: SettingsUtilsJSON
 
     /**
-     * Aliucord's preInit hook. Plugins are loaded here
+     * Initial entrypoint for Aliucord. early-init plugins are loaded here
      * @noinspection unused
      */
     @Suppress("unused")
-    fun preInit(activity: AppActivity) {
-        if (preInitialized) return
-        preInitialized = true
+    fun onApplicationInit(app: Application) {
+        Thread.setDefaultUncaughtExceptionHandler(Main::crashHandler)
 
-        Utils.appActivity = activity
+        createDirectories() // injector ensures we have perms
+        settings = SettingsUtilsJSON("Aliucord")
 
-        if (checkPermissions(activity)) preInitWithPermissions(activity)
+        Patcher.addPatch(AppActivity::class.java, "onCreate", arrayOf(Bundle::class.java), Hook { param ->
+            val activity = param.thisObject as AppActivity
+            Utils.appActivity = activity // reset due to possible activity recreation
+
+            if (!activityInitialized.getAndSet(true)) {
+                onActivityInit(activity)
+            }
+        })
+
+        Patcher.addPatch(WidgetChatList::class.java.getDeclaredConstructor(), Hook { param ->
+            Utils.widgetChatList = param.thisObject as WidgetChatList
+        })
 
         // Since 1.4.0, this is implemented via a smali patch to ensure it works even if Aliucord failed to load
         if (!hasPatches("1.4.0")) {
@@ -91,22 +84,17 @@ object Main {
                     }
                 })
         }
-
-        Patcher.addPatch(AppActivity::class.java, "onCreate", arrayOf(Bundle::class.java), Hook { param ->
-            Utils.appActivity = param.thisObject as AppActivity
-        })
-
-        Patcher.addPatch(WidgetChatList::class.java.getDeclaredConstructor(), Hook { param ->
-            Utils.widgetChatList = param.thisObject as WidgetChatList
-        })
     }
-
-    private fun preInitWithPermissions(activity: AppCompatActivity) {
-        createDirectories()
-        settings = SettingsUtilsJSON("Aliucord")
-        loadCorePlugins(activity)
+    fun onActivityInit(activity: AppActivity) {
+        PluginManager.loadCorePlugins(activity)
         loadAllPlugins(activity)
+
+        if (loadedPlugins) {
+            PluginManager.startCorePlugins()
+            startAllPlugins()
+        }
     }
+
 
     private fun createDirectories() {
         val settingsDir = File(Constants.SETTINGS_PATH)
@@ -117,22 +105,6 @@ object Main {
         val pluginsDir = File(Constants.PLUGINS_PATH)
         if (!pluginsDir.exists() && !pluginsDir.mkdirs()) {
             throw RuntimeException(IOException("Failed to create Aliucord plugins directory"))
-        }
-    }
-
-    /**
-     * Aliucord's init hook. Plugins are started here
-     * @noinspection unused
-     */
-    fun init(activity: AppActivity?) {
-        if (initialized) return
-        initialized = true
-
-        Thread.setDefaultUncaughtExceptionHandler(Main::crashHandler)
-
-        if (loadedPlugins) {
-            startCorePlugins()
-            startAllPlugins()
         }
     }
 
@@ -159,10 +131,10 @@ object Main {
                         badPlugin = entry.value.name
                         if (settings.getBool(AUTO_DISABLE_ON_CRASH_KEY, true)) {
                             disabledPlugin = true
-                            settings.setBool(getPluginPrefKey(badPlugin), false)
+                            settings.setBool(PluginManager.getPluginPrefKey(badPlugin), false)
                         }
                         break
-                    } catch (ignored: ClassNotFoundException) {
+                    } catch (_: ClassNotFoundException) {
                     }
                 }
 
@@ -177,7 +149,7 @@ object Main {
                     PrintStream(file).use { ps ->
                         throwable.printStackTrace(ps)
                     }
-                } catch (ignored: FileNotFoundException) {
+                } catch (_: FileNotFoundException) {
                 }
             }
 
@@ -191,7 +163,7 @@ object Main {
             }
             sb.append("Check the crashes section in the settings for more info.")
 
-            Toast.makeText(appContext, sb.toString(), Toast.LENGTH_LONG).show()
+            Toast.makeText(Utils.appContext, sb.toString(), Toast.LENGTH_LONG).show()
             Looper.loop()
         }.start()
 
@@ -201,19 +173,12 @@ object Main {
     }
 
     private fun loadAllPlugins(context: Context) {
-        if (isSafeModeEnabled()) {
+        if (PluginManager.isSafeModeEnabled()) {
             logger.warn("Safe mode is enabled. skipping loading external plugins")
             loadedPlugins = true
             return
         }
         val dir = File(Constants.PLUGINS_PATH)
-        if (!dir.exists()) {
-            val res = dir.mkdirs()
-            if (!res) {
-                logger.error("Failed to create directories!", null)
-                return
-            }
-        }
 
         val sortedPlugins = dir.listFiles()
         if (sortedPlugins != null) {
@@ -223,16 +188,16 @@ object Main {
             for (f in sortedPlugins) {
                 val name = f.getName()
                 if (name.endsWith(".zip")) {
-                    loadPlugin(context, f)
+                    PluginManager.loadPlugin(context, f)
                 } else if (name != "oat") { // Some roms create this
                     if (f.isDirectory()) {
-                        showToast(
-                            String.format("Found directory %s in your plugins folder. DO NOT EXTRACT PLUGIN ZIPS!", name),
+                        Utils.showToast(
+                            "Found directory $name in your plugins folder. DO NOT EXTRACT PLUGIN ZIPS!",
                             true
                         )
                     } else if (name == "classes.dex" || name.endsWith(".json")) {
-                        showToast(
-                            String.format("Found extracted plugin file %s in your plugins folder. DO NOT EXTRACT PLUGIN ZIPS!", name),
+                        Utils.showToast(
+                            "Found extracted plugin file $name in your plugins folder. DO NOT EXTRACT PLUGIN ZIPS!",
                             true
                         )
                     }
@@ -240,7 +205,7 @@ object Main {
                 }
             }
 
-            if (!PluginManager.failedToLoad.isEmpty()) showToast("Some plugins failed to load. Check the plugins page for more info.")
+            if (!PluginManager.failedToLoad.isEmpty()) Utils.showToast("Some plugins failed to load. Check the plugins page for more info.")
         }
         loadedPlugins = true
     }
@@ -252,10 +217,10 @@ object Main {
 
             val name = entry.key
             try {
-                if (isPluginEnabled(name)) startPlugin(name)
+                if (PluginManager.isPluginEnabled(name)) PluginManager.startPlugin(name)
             } catch (e: Throwable) {
                 PluginManager.logger.error("Exception while starting plugin: $name", e)
-                stopPlugin(name)
+                PluginManager.stopPlugin(name)
             }
         }
 
@@ -273,11 +238,10 @@ object Main {
         if (!PluginUpdater.isAutoUpdateEnabled()) {
             val notificationData = NotificationData()
                 .setTitle("Updater")
-                .setBody(String.format("Found %s available plugin updates! Click to view...", updates.size))
+                .setBody("Found ${updates.size} available plugin updates! Click to view...")
                 .setAutoDismissPeriodSecs(30)
-                .setOnClick { view: View? ->
-                    openPage(Utils.appActivity, UpdaterScreen::class.java)
-                    Constants.UNIT
+                .setOnClick { _: View? ->
+                    Utils.openPage(Utils.appActivity, UpdaterScreen::class.java)
                 }
 
             NotificationsAPI.display(notificationData)
@@ -300,52 +264,17 @@ object Main {
         if (failed > 0) {
             notification
                 .setAutoDismissPeriodSecs(30)
-                .setBody(String.format("Failed to update %s plugins! Click to view...", failed))
+                .setBody("Failed to update $failed plugins! Click to view...")
                 .setOnClick { _: View? ->
-                    openPage(Utils.appActivity, UpdaterScreen::class.java)
-
+                    Utils.openPage(Utils.appActivity, UpdaterScreen::class.java)
                 }
         } else {
             notification
                 .setAutoDismissPeriodSecs(10)
-                .setOnClick { _: View? -> Unit.a }
                 .setBody(("Automatically updated plugins: "
                     + ", " + succeeded.take(5)
                     + (if (succeeded.size > 5) ", and ${succeeded.size} others." else "")))
         }
         NotificationsAPI.display(notification)
-    }
-
-    private fun permissionGrantedCallback(activity: AppCompatActivity, granted: Boolean) {
-        if (granted) {
-            preInitWithPermissions(activity)
-            startCorePlugins()
-            startAllPlugins()
-        } else Toast.makeText(activity, "You have to grant storage permission to use Aliucord", Toast.LENGTH_LONG).show()
-    }
-
-    private fun checkPermissions(activity: AppCompatActivity): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageLegacy()) {
-            if (Environment.isExternalStorageManager()) return true
-            Toast.makeText(
-                activity,
-                "Please grant all files permission, so Aliucord can access its folder in Internal Storage",
-                Toast.LENGTH_LONG
-            ).show()
-            activity.registerForActivityResult(
-                ActivityResultContracts.StartActivityForResult()
-            ) { result: ActivityResult? -> permissionGrantedCallback(activity, Environment.isExternalStorageManager()) }.launch(
-                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    .setData(Uri.parse("package:" + activity.packageName))
-            )
-            return false
-        }
-
-        val perm = Manifest.permission.WRITE_EXTERNAL_STORAGE
-        if (activity.checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED) return true
-        activity.registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { granted: Boolean? -> permissionGrantedCallback(activity, granted!!) }.launch(perm)
-        return false
     }
 }
