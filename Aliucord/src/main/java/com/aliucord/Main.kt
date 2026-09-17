@@ -51,6 +51,7 @@ object Main {
      * @noinspection unused
      */
     @Suppress("unused")
+    @JvmStatic
     fun onApplicationInit(app: Application) {
         Thread.setDefaultUncaughtExceptionHandler(Main::crashHandler)
 
