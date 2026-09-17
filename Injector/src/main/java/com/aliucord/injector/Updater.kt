@@ -21,7 +21,11 @@ internal fun downloadLatestCore(outputFile: File) {
 
     val conn = URL(CORE_URL).openConnection() as HttpURLConnection
     conn.setRequestProperty("User-Agent", USER_AGENT)
-    conn.useCaches = false
+    conn.apply {
+        readTimeout = 15000
+        connectTimeout = 5000
+        useCaches = false
+    }
 
     conn.getInputStream().use { stream ->
         tmpFile.outputStream().use { out ->
@@ -82,7 +86,11 @@ internal fun fetchBuildData(): BuildData {
 
     val conn = URL(DATA_URL).openConnection() as HttpURLConnection
     conn.setRequestProperty("User-Agent", USER_AGENT)
-    conn.useCaches = false
+    conn.apply {
+        readTimeout = 15000
+        connectTimeout = 5000
+        useCaches = false
+    }
 
     val data = JSONObject(conn.inputStream.bufferedReader().readText())
     return BuildData(
