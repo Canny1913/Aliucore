@@ -244,15 +244,30 @@ public class FragmentProxy extends Fragment implements AppComponent {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         Fragment fragment = getmFragment();
+        mView = fragment.onCreateView(inflater, container, savedInstanceState);
         try {
-            Field field = Fragment.class.getDeclaredField("mFragmentManager");
-            field.setAccessible(true);
-            field.set(fragment, getFragmentManager());
+            Field mFragmentManagerField = Fragment.class.getDeclaredField("mFragmentManager");
+            mFragmentManagerField.setAccessible(true);
+            mFragmentManagerField.set(fragment, getFragmentManager());
+
             Field hostField = Fragment.class.getDeclaredField("mHost");
             hostField.setAccessible(true);
             hostField.set(fragment, hostField.get(this));
-        } catch (Exception e) { Main.logger.error(e); }
-        mView = fragment.onCreateView(inflater, container, savedInstanceState);
+
+            Field mAdded = Fragment.class.getDeclaredField("mAdded");
+            mAdded.setAccessible(true);
+            mAdded.set(fragment, true);
+
+            Field viewLifecycleOwnerField = Fragment.class.getDeclaredField("mViewLifecycleOwner");
+            viewLifecycleOwnerField.setAccessible(true);
+            viewLifecycleOwnerField.set(fragment, viewLifecycleOwnerField.get(this));
+
+            Field viewField = Fragment.class.getDeclaredField("mView");
+            viewField.setAccessible(true);
+            viewField.set(fragment, this.mView);
+        } catch (Exception e) {
+            Main.logger.error(e);
+        }
         return mView;
     }
 
