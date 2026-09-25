@@ -16,6 +16,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 import com.aliucord.Http
+import com.aliucord.PluginManager
 import com.aliucord.views.Button
 import com.aliucord.views.DangerButton
 import com.google.gson.reflect.TypeToken
@@ -48,9 +49,14 @@ internal class PluginRepoModal(private val author: String, private val repo: Str
             }
             plugins == null -> {
                 Utils.threadPool.execute {
+                    val pluginUrl = if (PluginManager.isAlternateCDNEnabled()) {
+                        "https://cdn.jsdelivr.net/gh/$author/$repo@refs/heads/builds/updater.json"
+                    } else {
+                        "https://raw.githubusercontent.com/$author/$repo/builds/updater.json"
+                    }
                     try {
                         plugins =
-                            Http.simpleJsonGet("https://cdn.jsdelivr.net/gh/$author/$repo@refs/heads/builds/updater.json", resType)
+                            Http.simpleJsonGet(pluginUrl, resType)
                     } catch (th: Throwable) {
                         throwable = th
                     }

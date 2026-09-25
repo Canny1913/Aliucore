@@ -1,7 +1,6 @@
 package com.aliucord.updater
 
-import com.aliucord.Http
-import com.aliucord.Logger
+import com.aliucord.*
 import com.aliucord.entities.Plugin
 import com.aliucord.utils.*
 import com.aliucord.utils.GsonUtils.fromJson
@@ -36,10 +35,13 @@ internal class PluginUpdaterSource {
      */
     fun getRepoBuildInfo(updateInfoUrl: String): Map<String, PluginBuildInfo>? {
         // Replace raw.githubusercontent.com urls with jsdelivr to avoid rate limiting
-        val realUpdateInfoUrl = updateInfoUrl.replace(
-            "https://raw\\.githubusercontent\\.com/(.+?)/(.+?)/(.+)".toRegex(),
-            "https://cdn.jsdelivr.net/gh/$1/$2@$3"
-        )
+        val realUpdateInfoUrl = if (PluginManager.isAlternateCDNEnabled()) {
+            updateInfoUrl.replace(
+                "https://raw\\.githubusercontent\\.com/(.+?)/(.+?)/(.+)".toRegex(),
+                "https://cdn.jsdelivr.net/gh/$1/$2@$3"
+            )
+        } else { updateInfoUrl }
+
 
         cachedRepoInfo[realUpdateInfoUrl]?.let {
             if (System.currentTimeMillis() < it.expiration) {

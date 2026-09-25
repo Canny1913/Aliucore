@@ -24,6 +24,7 @@ const val AUTO_UPDATE_ALIUCORD_KEY = "AC_aliucord_auto_update_enabled"
 const val ALIUCORD_SAFE_MODE_KEY = "AC_aliucord_safe_mode_enabled"
 const val ALIUCORD_FROM_STORAGE_KEY = "AC_from_storage"
 const val ALIUCORD_DISABLE_UPDATER = "disableAliucordUpdater"
+const val ALIUCORD_USE_JSDELIVR_CDN = "AC_use_jsdelivr_cdn"
 
 class AliucordPage : SettingsPage() {
     override fun onViewBound(view: View) {
@@ -64,6 +65,7 @@ class AliucordPage : SettingsPage() {
                 "Disables all of Aliucord's core and plugin update checks while enabled. " +
                     "Do not enable this unless you know the repercussions."
             )
+            addSwitch(ctx, ALIUCORD_USE_JSDELIVR_CDN, "Use alternative CDN", "Switches to using jsDelivr CDN for plugins. Has higher rate-limit but may return stale data due to caching.", false)
         }
 
         addDivider(ctx)

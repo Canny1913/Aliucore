@@ -228,13 +228,16 @@ public class Plugins extends SettingsPage {
 
         @Nullable
         private String getGithubUrl(Plugin plugin) {
-            String url = plugin.getManifest().updateUrl;
-            if (!isNotBlank(url)) return null;
+            var pluginUrl = plugin.getManifest().updateUrl;
 
-            return url.replaceFirst(
-                "https://(raw\\.githubusercontent\\.com|cdn\\.jsdelivr\\.net/gh)/([^/]+)/([^/@]+).*",
-                "https://github.com/$2/$3"
-            );
+            if (PluginManager.isAlternateCDNEnabled()) {
+                pluginUrl = pluginUrl.replaceFirst(
+                    "https://(raw\\.githubusercontent\\.com|cdn\\.jsdelivr\\.net/gh)/([^/]+)/([^/@]+).*",
+                    "https://github.com/$2/$3"
+                );
+            }
+
+            return pluginUrl;
         }
 
         public void onGithubClick(int position) {
