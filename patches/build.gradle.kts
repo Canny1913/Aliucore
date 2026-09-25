@@ -135,6 +135,7 @@ val copyDisassembled by tasks.register("copyDisassembled", Sync::class) {
 }
 
 val applyPatches = tasks.register("applyPatches") {
+    outputs.upToDateWhen { false }
     group = TASK_GROUP_INTERNAL
 
     // Configuration cache workaround
