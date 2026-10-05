@@ -208,7 +208,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         ) { (param, _: RecyclerView, guild: RecyclerView.ViewHolder) ->
             if (guild === pressedGuild) param.result = false
         }
-
+        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>("findAnimation", MotionEvent::class.java) { (_, event: MotionEvent) ->
             if (mCallback !is GuildsDragAndDropCallback) return@before
 
@@ -217,6 +217,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
                 ?.let(mRecyclerView::getChildViewHolder)
         }
 
+        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>(
             "select", RecyclerView.ViewHolder::class.java, Int::class.javaPrimitiveType!!,
         ) { (_, selected: RecyclerView.ViewHolder?, _: Int) ->
@@ -235,6 +236,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
             }
         }
 
+        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>(
             "checkSelectForSwipe",
             Int::class.javaPrimitiveType!!,
