@@ -130,6 +130,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         fixServerIconLongPress()
         fixNewAttachmentSpoilers()
         fixNewMimeTypes()
+        fixNavigationInThread()
     }
 
     private val WidgetChatList.binding by accessField<FragmentViewBindingDelegate<WidgetChatListBinding>?>($$"binding$delegate")
@@ -770,6 +771,13 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         ) }
     }
 
+    private fun fixNavigationInThread() = tryPatch("Force enables navigation in threads") {
+        patcher.instead<WidgetChatListAdapterEventsHandler>("onThreadClicked",
+            Channel::class.java
+        ) { (_, channel: Channel) ->
+            ChannelSelector.getInstance().selectChannel(channel, null, null)
+        }
+    }
     private fun tryPatch(label: String, block: () -> Unit) {
         try {
             block()
