@@ -37,6 +37,7 @@ import com.discord.api.message.embed.EmbedType
 import com.discord.api.permission.Permission
 import com.discord.app.AppFragment
 import com.discord.databinding.*
+import com.discord.models.domain.NonceGenerator
 import com.discord.models.domain.emoji.ModelEmojiCustom
 import com.discord.models.domain.emoji.ModelEmojiUnicode
 import com.discord.models.experiments.domain.Experiment
@@ -44,6 +45,7 @@ import com.discord.models.guild.Guild
 import com.discord.rtcconnection.socket.io.Payloads.Protocol.ProtocolInfo
 import com.discord.stores.*
 import com.discord.stores.updates.ObservationDeck
+import com.discord.utilities.SnowflakeUtils
 import com.discord.utilities.channel.ChannelSelector
 import com.discord.utilities.drawable.DrawableCompat
 import com.discord.utilities.embed.EmbedResourceUtils
@@ -54,6 +56,7 @@ import com.discord.utilities.lazy.memberlist.ChannelMemberList
 import com.discord.utilities.lazy.memberlist.MemberListRow
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
+import com.discord.utilities.time.Clock
 import com.discord.utilities.time.ClockFactory
 import com.discord.utilities.time.NtpClock
 import com.discord.utilities.view.extensions.RecyclerViewExtensionsKt
@@ -131,6 +134,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         fixNewAttachmentSpoilers()
         fixNewMimeTypes()
         fixNavigationInThread()
+        fixNonce()
     }
 
     private val WidgetChatList.binding by accessField<FragmentViewBindingDelegate<WidgetChatListBinding>?>($$"binding$delegate")
@@ -199,6 +203,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
     private val GuildListViewHolder.GuildViewHolder.bindingGuild
         by accessField<WidgetGuildsListItemGuildBinding>()
 
+    @Suppress("INVISIBLE_REFERENCE")
     private fun fixServerIconLongPress() = tryPatch("Fix server icon long press") {
         var pressedGuild: RecyclerView.ViewHolder? = null
         var guildHeld = false
@@ -208,7 +213,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         ) { (param, _: RecyclerView, guild: RecyclerView.ViewHolder) ->
             if (guild === pressedGuild) param.result = false
         }
-        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>("findAnimation", MotionEvent::class.java) { (_, event: MotionEvent) ->
             if (mCallback !is GuildsDragAndDropCallback) return@before
 
@@ -217,7 +221,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
                 ?.let(mRecyclerView::getChildViewHolder)
         }
 
-        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>(
             "select", RecyclerView.ViewHolder::class.java, Int::class.javaPrimitiveType!!,
         ) { (_, selected: RecyclerView.ViewHolder?, _: Int) ->
@@ -236,7 +239,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
             }
         }
 
-        @Suppress("INVISIBLE_REFERENCE")
         patcher.before<ItemTouchHelper>(
             "checkSelectForSwipe",
             Int::class.javaPrimitiveType!!,
@@ -300,7 +302,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
 
             val size = IconUtils.getMediaProxySize(bindingGuild.d.layoutParams.height)
             val url = IconUtils.getForGuild(guild, null, animated) + "&size=${size}"
-            MGImages.`setImage$default`(bindingGuild.d, url, size, size, false, null, null, 112, null);
+            MGImages.`setImage$default`(bindingGuild.d, url, size, size, false, null, null, 112, null)
         }
 
         // Support webp emojis by forcing every emoji to be webp
@@ -780,6 +782,22 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
             ChannelSelector.getInstance().selectChannel(channel, null, null)
         }
     }
+
+    private var previousNonce: Long
+        get() = NonceGenerator.`access$getPreviousNonce$cp`()
+        set(value) = NonceGenerator.`access$setPreviousNonce$cp`(value)
+
+    private fun fixNonce() = tryPatch("Fixes incorrect date in nonce generator") {
+        patcher.instead<NonceGenerator.Companion>("computeNonce",
+            Clock::class.java
+        ) {
+            var currentTime = System.currentTimeMillis() - SnowflakeUtils.DISCORD_EPOCH shl 22
+            if (currentTime <= previousNonce) currentTime = previousNonce + 1
+            previousNonce = currentTime
+            return@instead currentTime
+        }
+    }
+
     private fun tryPatch(label: String, block: () -> Unit) {
         try {
             block()
