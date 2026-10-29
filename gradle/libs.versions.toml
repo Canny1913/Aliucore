@@ -1,5 +1,5 @@
 [versions]
-aliucord-gradle = "2.3.0"
+aliucore-gradle = "e323d8c"
 aliuhook = "1.1.4"
 android-gradle = "8.13.2"
 desugar = "2.1.5"
@@ -30,8 +30,8 @@ smali = { module = "com.android.tools.smali:smali", version.ref = "smali" }
 smali-baksmali = { module = "com.android.tools.smali:smali-baksmali", version.ref = "smali" }
 
 [plugins]
-aliucord-core = { id = "com.aliucord.core", version.ref = "aliucord-gradle" }
-aliucord-injector = { id = "com.aliucord.injector", version.ref = "aliucord-gradle" }
+aliucord-core = { id = "io.github.canny1913.core", version.ref = "aliucore-gradle" }
+aliucord-injector = { id = "io.github.canny1913.injector", version.ref = "aliucore-gradle" }
 android-library = { id = "com.android.library", version.ref = "android-gradle" }
 dokka-html = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 dokka-javadoc = { id = "org.jetbrains.dokka-javadoc", version.ref = "dokka" }
