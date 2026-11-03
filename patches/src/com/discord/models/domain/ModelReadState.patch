@@ -1,0 +1,28 @@
+--- smali_original/com/discord/models/domain/ModelReadState.smali
++++ smali/com/discord/models/domain/ModelReadState.smali
+@@ -80,6 +80,7 @@
+ 
+ .field private final version:I
+ 
++.field public final manual:Z
+ 
+ # direct methods
+ .method public constructor <init>(JJII)V
+@@ -331,9 +332,15 @@ .method public equals(Ljava/lang/Object;
+ 
+     iget v0, p0, Lcom/discord/models/domain/ModelReadState;->version:I
+ 
+-    iget p1, p1, Lcom/discord/models/domain/ModelReadState;->version:I
++    iget v1, p1, Lcom/discord/models/domain/ModelReadState;->version:I
+ 
+-    if-ne v0, p1, :cond_25
++    if-ne v0, v1, :cond_25
++
++    iget-boolean v0, p0, Lcom/discord/models/domain/ModelReadState;->manual:Z
++
++    iget-boolean v1, p1, Lcom/discord/models/domain/ModelReadState;->manual:Z
++
++    if-ne v0, v1, :cond_25
+ 
+     goto :goto_27
+ 

@@ -1,0 +1,21 @@
+--- smali_original/com/discord/stores/StoreMessageAck$Ack.smali
++++ smali/com/discord/stores/StoreMessageAck$Ack.smali
+@@ -74,7 +74,6 @@
+ 
+ .field private final viewed:Z
+ 
+-
+ # direct methods
+ .method public constructor <init>(JZZ)V
+     .locals 0
+@@ -109,6 +108,10 @@ .method public constructor <init>(Lcom/d
+     :goto_9
+     invoke-direct {p0, v0, v1, p2, p3}, Lcom/discord/stores/StoreMessageAck$Ack;-><init>(JZZ)V
+ 
++    iget-boolean v0, p1, Lcom/discord/models/domain/ModelReadState;->manual:Z
++
++    iput-boolean v0, p0, Lcom/discord/stores/StoreMessageAck$Ack;->isLockedAck:Z
++
+     return-void
+ .end method
+ 

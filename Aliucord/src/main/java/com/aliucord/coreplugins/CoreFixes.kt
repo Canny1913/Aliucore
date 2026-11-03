@@ -56,9 +56,7 @@ import com.discord.utilities.lazy.memberlist.ChannelMemberList
 import com.discord.utilities.lazy.memberlist.MemberListRow
 import com.discord.utilities.permissions.PermissionUtils
 import com.discord.utilities.rest.RestAPI
-import com.discord.utilities.time.Clock
-import com.discord.utilities.time.ClockFactory
-import com.discord.utilities.time.NtpClock
+import com.discord.utilities.time.*
 import com.discord.utilities.view.extensions.RecyclerViewExtensionsKt
 import com.discord.utilities.viewbinding.FragmentViewBindingDelegate
 import com.discord.widgets.channels.list.*
@@ -129,7 +127,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         fixExternalLinks()
         fixClock()
         fixBioHeightLimit()
-        fixUnreadForumChannels()
         fixMemoryLeak()
         fixServerIconLongPress()
         fixNewAttachmentSpoilers()
@@ -619,29 +616,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         }
     }
 
-    private fun fixUnreadForumChannels() = tryPatch("Fix unread forum channels") {
-        patcher.before<StoreReadStates>(
-            "computeUnreadIds",
-            Map::class.java,
-            Map::class.java,
-            Map::class.java,
-            Map::class.java,
-            Map::class.java,
-            Map::class.java,
-            Long::class.javaPrimitiveType!!,
-            Map::class.java,
-            Map::class.java,
-        )
-        { param ->
-            // Only check joined forum posts instead of all public posts
-            @Suppress("UNCHECKED_CAST")
-            val forumThreadsMap = param.args[7] as Map<Long, Channel>
-            val joinedForumThreadsMap = forumThreadsMap.filter {
-                StoreStream.Companion!!.threadsJoined.getJoinedThread(it.value.id) != null
-            }
-            param.args[7] = joinedForumThreadsMap
-        }
-    }
 
     private fun fixMemoryLeak() = tryPatch("Fix base memory leak") {
         // Patch some fragment binding onDestroy callbacks to ensure backend stuff doesn't outlive the fragment itself.

@@ -309,6 +309,7 @@ object PluginManager {
             DiscordBadges(),
             ExperimentDefaults(),
             ForwardedMessages(),
+            MessageAckFix(),
             NewMessages(),
             NewPins(),
             NoTrack(),
