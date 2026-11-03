@@ -35,7 +35,7 @@ internal class PluginUpdaterSource {
      */
     fun getRepoBuildInfo(updateInfoUrl: String): Map<String, PluginBuildInfo>? {
         // Replace raw.githubusercontent.com urls with jsdelivr to avoid rate limiting
-        val realUpdateInfoUrl = if (PluginManager.isAlternateCDNEnabled()) {
+        val realUpdateInfoUrl = if (Main.alternativeCDN) {
             updateInfoUrl.replace(
                 "https://raw\\.githubusercontent\\.com/(.+?)/(.+?)/(.+)".toRegex(),
                 "https://cdn.jsdelivr.net/gh/$1/$2@$3"

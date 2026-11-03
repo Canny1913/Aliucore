@@ -20,7 +20,6 @@ import com.aliucord.entities.CorePlugin
 import com.aliucord.entities.Plugin
 import com.aliucord.patcher.Patcher
 import com.aliucord.patcher.PreHook
-import com.aliucord.settings.ALIUCORD_USE_JSDELIVR_CDN
 import com.aliucord.utils.GsonUtils.fromJson
 import com.aliucord.utils.GsonUtils.gson
 import com.aliucord.utils.MapUtils
@@ -275,10 +274,6 @@ object PluginManager {
     @Suppress("unused")
     fun isPluginEnabled(plugin: Plugin) = isPluginEnabled(MapUtils.getMapKey(plugins, plugin)!!)
 
-    /** Checks whether using alternate CDN for plugins is enabled. */
-    @JvmStatic
-    fun isAlternateCDNEnabled() = Main.settings.getBool(ALIUCORD_USE_JSDELIVR_CDN, false)
-
     /** Gets only plugins that should be visible to user */
     @JvmStatic
     fun getVisiblePlugins() = plugins.filter { (_, p) -> p !is CorePlugin || !p.isHidden }
@@ -323,7 +318,6 @@ object PluginManager {
             SupportWarn(),
             SupporterBadges(),
             TokenLogin(),
-            UploadSize(),
         )
 
         corePlugins.filter { p ->

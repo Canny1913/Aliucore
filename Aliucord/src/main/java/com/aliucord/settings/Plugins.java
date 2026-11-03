@@ -230,7 +230,7 @@ public class Plugins extends SettingsPage {
         private String getGithubUrl(Plugin plugin) {
             var pluginUrl = plugin.getManifest().updateUrl;
 
-            if (PluginManager.isAlternateCDNEnabled()) {
+            if (Main.alternativeCDN) {
                 pluginUrl = pluginUrl.replaceFirst(
                     "https://(raw\\.githubusercontent\\.com|cdn\\.jsdelivr\\.net/gh)/([^/]+)/([^/@]+).*",
                     "https://github.com/$2/$3"

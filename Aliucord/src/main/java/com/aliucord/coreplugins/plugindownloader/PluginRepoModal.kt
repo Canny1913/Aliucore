@@ -7,19 +7,15 @@
 package com.aliucord.coreplugins.plugindownloader
 
 import android.view.View
-import com.aliucord.fragments.SettingsPage
 import android.widget.TextView
-import com.aliucord.Constants
-import com.aliucord.Utils
-import com.lytefast.flexinput.R
-import java.io.PrintWriter
-import java.io.StringWriter
-
-import com.aliucord.Http
-import com.aliucord.PluginManager
+import com.aliucord.*
+import com.aliucord.fragments.SettingsPage
 import com.aliucord.views.Button
 import com.aliucord.views.DangerButton
 import com.google.gson.reflect.TypeToken
+import com.lytefast.flexinput.R
+import java.io.PrintWriter
+import java.io.StringWriter
 
 internal class PluginRepoModal(private val author: String, private val repo: String) : SettingsPage() {
     private val resType = TypeToken.getParameterized(MutableMap::class.java, String::class.java, PluginInfo::class.java).getType()
@@ -49,7 +45,7 @@ internal class PluginRepoModal(private val author: String, private val repo: Str
             }
             plugins == null -> {
                 Utils.threadPool.execute {
-                    val pluginUrl = if (PluginManager.isAlternateCDNEnabled()) {
+                    val pluginUrl = if (Main.alternativeCDN) {
                         "https://cdn.jsdelivr.net/gh/$author/$repo@refs/heads/builds/updater.json"
                     } else {
                         "https://raw.githubusercontent.com/$author/$repo/builds/updater.json"

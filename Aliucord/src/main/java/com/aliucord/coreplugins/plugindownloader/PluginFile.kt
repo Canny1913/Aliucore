@@ -16,7 +16,7 @@ internal class PluginFile(val plugin: String) : File("${Constants.PLUGINS_PATH}/
         get() = this.exists()
 
     fun install(author: String, repo: String, callback: Runnable? = null) {
-        val url = if (PluginManager.isAlternateCDNEnabled()) {
+        val url = if (Main.alternativeCDN) {
             "https://cdn.jsdelivr.net/gh/$author/$repo@builds/$plugin.zip"
         } else {
             "https://github.com/$author/$repo/raw/builds/$plugin.zip"

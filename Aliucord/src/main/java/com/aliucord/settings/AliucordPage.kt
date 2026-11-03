@@ -44,7 +44,8 @@ class AliucordPage : SettingsPage() {
             "When a plugin is found to be causing crashes, it will automatically be disabled",
             true
         )
-        addSwitch(ctx, ALIUCORD_SAFE_MODE_KEY, "Safe mode", "Disables all plugins and optional coreplugins.", false) { Utils.promptRestart() }
+        addSwitch(ctx, ALIUCORD_SAFE_MODE_KEY, "Safe mode", "Disables all plugins and optional coreplugins.", false)
+        { Utils.promptRestart() }
 
         if (StoreStream.getUserSettings().isDeveloperMode) {
             addDivider(ctx)
@@ -65,7 +66,9 @@ class AliucordPage : SettingsPage() {
                 "Disables all of Aliucord's core and plugin update checks while enabled. " +
                     "Do not enable this unless you know the repercussions."
             )
-            addSwitch(ctx, ALIUCORD_USE_JSDELIVR_CDN, "Use alternative CDN", "Switches to using jsDelivr CDN for plugins. Has higher rate-limit but may return stale data due to caching.", false)
+            addSwitch(ctx, ALIUCORD_USE_JSDELIVR_CDN, "Use alternative CDN", "Switches to using jsDelivr CDN for plugins. Has higher rate-limit but may return stale data due to caching.", false) {
+                Utils.promptRestart()
+            }
         }
 
         addDivider(ctx)

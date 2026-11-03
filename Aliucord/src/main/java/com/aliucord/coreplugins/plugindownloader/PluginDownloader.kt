@@ -234,7 +234,7 @@ internal class PluginDownloader : CorePlugin(Manifest("PluginDownloader")) {
                     ctx = sheet.requireContext(),
                     text = "${if (plugin.isInstalled) "Reinstall" else "Install"} $name",
                     onClick = {
-                        val pluginUrl = if (PluginManager.isAlternateCDNEnabled()) {
+                        val pluginUrl = if (Main.alternativeCDN) {
                             "https://cdn.jsdelivr.net/gh/$author/$repo@$commit/$name.zip"
                         } else {
                             "https://github.com/$author/$repo/raw/$commit/$name.zip"
