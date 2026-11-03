@@ -8,7 +8,6 @@ import com.aliucord.api.NotificationsAPI
 import com.aliucord.entities.NotificationData
 import com.aliucord.fragments.ConfirmDialog
 import com.aliucord.settings.*
-import com.aliucord.updater.CoreUpdater.UPDATER_DATA_URL
 import com.aliucord.updater.CoreUpdater.isCustomCoreLoaded
 import com.aliucord.utils.*
 import dalvik.system.BaseDexClassLoader
@@ -24,7 +23,8 @@ internal object CoreUpdater {
      * Fetches the remote build info.
      */
     private fun fetchAliucordData(): BuildData {
-        return Http.simpleJsonGet(UPDATER_DATA_URL, BuildData::class.java)
+        val coreUrl = baseUrl + UPDATER_DATA_NAME
+        return Http.simpleJsonGet(coreUrl, BuildData::class.java)
     }
 
     /**
@@ -100,8 +100,9 @@ internal object CoreUpdater {
      */
     private fun updateAliucord() = Utils.threadPool.execute {
         try {
-            logger.debug("Downloading new core bundle from $CORE_ZIP_URL...")
-            Http.simpleDownload(CORE_ZIP_URL, Utils.appContext.codeCacheDir.resolve("Aliucord.zip"))
+            val coreUrl = baseUrl + CORE_ZIP_NAME
+            logger.debug("Downloading new core bundle from $coreUrl...")
+            Http.simpleDownload(coreUrl, Utils.appContext.codeCacheDir.resolve("Aliucord.zip"))
             logger.debug("Finished downloading core")
 
             Utils.promptRestart("Aliucord update requires a restart. Restart now?")
@@ -166,8 +167,9 @@ internal object CoreUpdater {
         }
     }
 
+    private val baseUrl: String = if (Main.alternativeCDN) BASE_ALTERNATIVE_URL else BASE_URL
     /**
-     * The model of the data available at [UPDATER_DATA_URL].
+     * The model of the updater data.
      */
     private data class BuildData(
         @SerializedName("versionCode")
@@ -178,6 +180,8 @@ internal object CoreUpdater {
         var kotlinVersion: SemVer,
     )
 
-    private const val UPDATER_DATA_URL = "https://builds.aliucord.com/data.json"
-    private const val CORE_ZIP_URL = "https://builds.aliucord.com/Aliucord.zip"
+    private const val BASE_URL = "https://github.com/Canny1913/Aliucore/raw/builds/"
+    private const val BASE_ALTERNATIVE_URL = "https://cdn.jsdelivr.net/gh/Canny1913/Aliucore@builds/"
+    private const val UPDATER_DATA_NAME = "data.json"
+    private const val CORE_ZIP_NAME = "Aliucord.zip"
 }
