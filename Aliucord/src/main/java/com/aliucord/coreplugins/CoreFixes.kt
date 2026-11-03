@@ -210,11 +210,6 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         var pressedGuild: RecyclerView.ViewHolder? = null
         var guildHeld = false
 
-        patcher.before<ItemTouchHelper.Callback>(
-            "hasDragFlag", RecyclerView::class.java, RecyclerView.ViewHolder::class.java,
-        ) { (param, _: RecyclerView, guild: RecyclerView.ViewHolder) ->
-            if (guild === pressedGuild) param.result = false
-        }
         patcher.before<ItemTouchHelper>("findAnimation", MotionEvent::class.java) { (_, event: MotionEvent) ->
             if (mCallback !is GuildsDragAndDropCallback) return@before
 
@@ -222,7 +217,11 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
             pressedGuild = mRecyclerView.findChildViewUnder(event.x, event.y)
                 ?.let(mRecyclerView::getChildViewHolder)
         }
-
+        patcher.before<ItemTouchHelper.Callback>(
+            "hasDragFlag", RecyclerView::class.java, RecyclerView.ViewHolder::class.java,
+        ) { (param, _: RecyclerView, guild: RecyclerView.ViewHolder) ->
+            if (guild === pressedGuild) param.result = false
+        }
         patcher.before<ItemTouchHelper>(
             "select", RecyclerView.ViewHolder::class.java, Int::class.javaPrimitiveType!!,
         ) { (_, selected: RecyclerView.ViewHolder?, _: Int) ->
@@ -343,7 +342,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         }
     }
 
-    // This patch serves two purposes: fixing broken gif previews, and enabling support for animated webp
+    // This patch serves two purposes: fixing broken GIF previews, and enabling support for animated webp
     private fun fixAnimatedPreviews() = tryPatch("Fix animated previews") {
         patcher.after<EmbedResourceUtils>(
             "getPreviewUrls",
@@ -635,6 +634,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         )
         { param ->
             // Only check joined forum posts instead of all public posts
+            @Suppress("UNCHECKED_CAST")
             val forumThreadsMap = param.args[7] as Map<Long, Channel>
             val joinedForumThreadsMap = forumThreadsMap.filter {
                 StoreStream.Companion!!.threadsJoined.getJoinedThread(it.value.id) != null
