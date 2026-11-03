@@ -79,6 +79,7 @@ import com.discord.widgets.guilds.contextmenu.WidgetGuildContextMenu
 import com.discord.widgets.guilds.list.*
 import com.discord.widgets.home.WidgetHome
 import com.discord.widgets.media.WidgetMedia
+import com.discord.widgets.media.`WidgetMedia$onViewBoundOrOnResume$1`
 import com.discord.widgets.settings.profile.SettingsUserProfileViewModel
 import com.discord.widgets.settings.profile.WidgetEditUserOrGuildMemberProfile
 import com.discord.widgets.status.WidgetForumPostStatus
@@ -135,6 +136,7 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
         fixNewMimeTypes()
         fixNavigationInThread()
         fixNonce()
+        fixMediaSource()
     }
 
     private val WidgetChatList.binding by accessField<FragmentViewBindingDelegate<WidgetChatListBinding>?>($$"binding$delegate")
@@ -795,6 +797,29 @@ internal class CoreFixes : CorePlugin(Manifest("CoreFixes")) {
             if (currentTime <= previousNonce) currentTime = previousNonce + 1
             previousNonce = currentTime
             return@instead currentTime
+        }
+    }
+
+    private fun fixMediaSource() = tryPatch("Replaces proxy URL's in media view with CDN versions of it") {
+        patcher.before<`WidgetMedia$onViewBoundOrOnResume$1`<*,*>>(
+            WidgetMedia::class.java,
+            Uri::class.java,
+            Uri::class.java,
+            String::class.javaObjectType,
+            String::class.javaObjectType
+        ) { param ->
+            // Using download uri for both source uri and download uri is preferable
+            // because only download uri contains the required timestamp and signature queries - Canny
+            val uri = param.args[2] as Uri
+            if (uri.authority != "media.discordapp.net") return@before
+            val filteredQueryKeys = uri.queryParameterNames.filter { it != "format" && it != "width" && it != "height" && it != "quality" && it != "size" }
+            val newUri = uri.buildUpon()
+                .authority("cdn.discordapp.com")
+                .clearQuery()
+                .apply { filteredQueryKeys.forEach { appendQueryParameter(it, uri.getQueryParameter(it)) } }
+                .build()
+            param.args[1] = newUri
+            param.args[2] = newUri
         }
     }
 
